@@ -1,26 +1,22 @@
-﻿CREATE PROCEDURE [dbo].[getComputedTestDuplicateCounts]
-	
-AS
-BEGIN
-	
-	SELECT
-		SUM(IsNull(csdupe.[Count], 0)) as [CaseSensitiveDuplicates],
-		SUM(IsNull(cidupe.[Count], 0)) as [CaseInsensitiveDuplicates]
+CREATE PROCEDURE [dbo].[getComputedTestDuplicateCounts]  
+AS  
+BEGIN  
+    SET NOCOUNT ON;  
 
-	FROM [dbo].[ComputedTest] t
-	LEFT JOIN (
-		-- Find Case Sensitive Duplicates
-		SELECT HashId, count(*) as [Count]
-		FROM [dbo].[ComputedTest]
-		GROUP BY HashId
-		HAVING COUNT(*) > 1
-	) as csdupe ON t.HashId = csdupe.HashId
-	LEFT JOIN (
-		-- Find Case Insensitive Duplicates
-		SELECT HashId COLLATE sql_latin1_general_cp1_ci_as as [HashId], count(*) as [Count]
-		FROM [dbo].[ComputedTest]
-		GROUP BY HashId COLLATE sql_latin1_general_cp1_ci_as
-		HAVING COUNT(*) > 1
-	) cidupe ON t.HashId = cidupe.HashId
-
-END
+    SELECT  
+        SUM(ISNULL(cs.[Count], 0)) AS CaseSensitiveDuplicates,  
+        SUM(ISNULL(ci.[Count], 0)) AS CaseInsensitiveDuplicates  
+    FROM [dbo].[ComputedTest] t  
+    LEFT JOIN (  
+        SELECT HashId, COUNT(*) AS [Count]  
+        FROM [dbo].[ComputedTest]  
+        GROUP BY HashId  
+        HAVING COUNT(*) > 1  
+    ) cs ON t.HashId = cs.HashId  
+    LEFT JOIN (  
+        SELECT HashId COLLATE SQL_Latin1_General_CP1_CI_AS AS HashId, COUNT(*) AS [Count]  
+        FROM [dbo].[ComputedTest]  
+        GROUP BY HashId COLLATE SQL_Latin1_General_CP1_CI_AS  
+        HAVING COUNT(*) > 1  
+    ) ci ON t.HashId = ci.HashId;  
+END;  
