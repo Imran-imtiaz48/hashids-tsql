@@ -1,52 +1,39 @@
-﻿CREATE PROCEDURE [dbo].[seedNumberTable]
-	@start int = NULL,
-	@end int = NULL,
-	@withStringConversion bit = NULL
-AS
-BEGIN
-	
-	SELECT
-		@start = IsNull(@start, 0),
-		@end = IsNull(@end, 8192),
-		@withStringConversion = IsNull(@withStringConversion, 1);
+CREATE PROCEDURE [dbo].[seedNumberTable]  
+    @start INT = NULL,  
+    @end INT = NULL,  
+    @withStringConversion BIT = NULL  
+AS  
+BEGIN  
+    SET NOCOUNT ON;  
 
-	DECLARE
-		@upper int = @end + 1;
+    SET @start = ISNULL(@start, 0);  
+    SET @end = ISNULL(@end, 8192);  
+    SET @withStringConversion = ISNULL(@withStringConversion, 1);  
 
-	TRUNCATE TABLE [dbo].[Number];
-	
-	-- Create 8 seed rows
-	DECLARE
-		@seed TABLE(i int);
+    DECLARE @upper INT = @end + 1;  
 
-	INSERT INTO @seed(i)
-	VALUES(0),(1),(2),(3),(4),(5),(6),(7);
+    TRUNCATE TABLE [dbo].[Number];  
 
-	INSERT INTO [dbo].[Number](i)
-	SELECT i FROM @seed WHERE i BETWEEN @start and @end;
+    DECLARE @seed TABLE(i INT);  
+    INSERT INTO @seed (i) VALUES (0), (1), (2), (3), (4), (5), (6), (7);  
 
-	-- Multiply them by 2 until we reach @rows
-	DECLARE
-		@count int
+    INSERT INTO [dbo].[Number] (i)  
+    SELECT i FROM @seed WHERE i BETWEEN @start AND @end;  
 
-	WHILE ((select max(i) from [dbo].[Number]) < @end) BEGIN
-		
-		SELECT @count = (select count(*) from [dbo].[Number])
+    WHILE (SELECT MAX(i) FROM [dbo].[Number]) < @end  
+    BEGIN  
+        INSERT INTO [dbo].[Number] (i)  
+        SELECT n.i + COUNT(*) OVER()  
+        FROM [dbo].[Number] n  
+        WHERE n.i + COUNT(*) OVER() < @upper;  
+    END  
 
-		INSERT INTO [dbo].[Number](i)
-		SELECT n.i + @count
-		FROM [dbo].[Number] n
-		WHERE
-			(n.i + @count) < @upper
-
-	END
-
-	-- Pre-generate string conversions
-	IF @withStringConversion = 1 BEGIN
-		UPDATE [dbo].[Number]
-		SET
-			ia = cast(i as varchar(10)),
-			iu = cast(i as nvarchar(10));
-	END
-
-END
+    IF @withStringConversion = 1  
+    BEGIN  
+        UPDATE n  
+        SET  
+            ia = CAST(n.i AS VARCHAR(10)),  
+            iu = CAST(n.i AS NVARCHAR(10))  
+        FROM [dbo].[Number] n;  
+    END  
+END;  
